@@ -1,12 +1,12 @@
 {
-  "name": "ticketnest@2.0",
+  "name": "ticketnest",
   "version": "1.0.0",
   "description": "",
   "type": "module",
   "main": "server.js",
   "scripts": {
     "start": "nodemon server.js",
-    "setup-production": "npm run install-client && npm run build-client && npm install",
+    "setup-production": "npm run install-client && npm run build-client && rm -rf client/node_modules",
     "install-client": "cd client && npm install",
     "build-client": "cd client && npm run build"
   },
