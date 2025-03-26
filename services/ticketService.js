@@ -1,13 +1,18 @@
-import { Ticket, TicketHistory } from "../models/ticketModel.js";
+import { Ticket } from "../models/ticketModel.js";
 import { areArraysEqual, entryToCQR } from "../utils/funtions.js";
+import {
+  ticketClosed,
+  ticketRaised,
+  ticketRescheduled,
+} from "./emailService.js";
+import { ticketHistoryService } from "./ticketHistoryService.js";
 
 export const ticketService = {
   async createTicket(ticketData, user) {
     // Check for existing open tickets
     const existingTicket = await this.findExistingOpenTicket(
-      ticketData.contract
+      ticketData.contract.number
     );
-
     if (existingTicket) {
       const alsoSameService = areArraysEqual(
         existingTicket.contract.selectedServices,
@@ -24,15 +29,108 @@ export const ticketService = {
     const newTicket = await Ticket.create(ticketData);
 
     // Create ticket history
-    await this.createTicketHistory(newTicket.ticketNo, user);
+    await ticketHistoryService.createTicketHistory(newTicket.ticketNo, user);
 
     return newTicket;
   },
+  async assignTicket(ticketData, user) {
+    try {
+      await ticketRaised(ticketData, user.username);
+      await ticketHistoryService.createTicketHistoryEntry(
+        ticketData.ticketNo,
+        "Open",
+        "Assigned",
+        user
+      );
+      const assignedTicket = await Ticket.findByIdAndUpdate(
+        ticketData._id,
+        ticketData,
+        {
+          new: true,
+          runValidators: true,
+        }
+      )
+        .populate({ path: "history", select: "changes" })
+        .lean();
 
-  async findExistingOpenTicket(contract) {
+      return assignedTicket;
+    } catch (error) {
+      throw new Error("Error while Assigning ticket", error);
+    }
+  },
+  async rescheduleTicket(
+    ticketId,
+    scheduledDate,
+    scheduledTime,
+    message,
+    user
+  ) {
+    try {
+      const rescheduleTicket = await Ticket.findByIdAndUpdate(
+        ticketId,
+        {
+          scheduledDate,
+          scheduledTime,
+        },
+        { new: true }
+      )
+        .populate({
+          path: "history",
+          select: "changes",
+        })
+        .lean();
+      await ticketHistoryService.ticketHistoryRechedule(
+        rescheduleTicket.ticketNo,
+        message,
+        user,
+        { scheduledDate, scheduledTime }
+      );
+      await ticketRescheduled(rescheduleTicket, user.username);
+      return rescheduleTicket;
+    } catch (error) {
+      throw new Error("Error while rescheduling ticket", error);
+    }
+  },
+  async closeTicket(ticket, user) {
+    try {
+      await entryToCQR(ticket);
+
+      const closedTicket = await Ticket.findByIdAndUpdate(ticket._id, ticket, {
+        new: true,
+        runValidators: true,
+      })
+        .populate({ path: "history", select: "changes" }) // Populate before lean()
+        .lean();
+      await ticketHistoryService.createTicketHistoryEntry(
+        ticket.ticketNo,
+        "Assigned",
+        "Closed",
+        user
+      );
+      await ticketClosed(ticket, user.username);
+      return closedTicket;
+    } catch (error) {
+      throw new Error("Error while closing ticket", error);
+    }
+  },
+  async cancelTicket(ticketId) {
+    try {
+      const cancelTicket = await Ticket.findByIdAndUpdate(
+        ticketId,
+        { $set: { status: "Canceled" } },
+        { new: true }
+      )
+        .populate({ path: "history", select: "changes" }) // Populate before lean()
+        .lean();
+      return cancelTicket;
+    } catch (error) {
+      throw new Error("Error while cancel ticket", error);
+    }
+  },
+  async findExistingOpenTicket(contractNo) {
     return await Ticket.findOne(
       {
-        contract: contract,
+        "contract.number": contractNo,
         $or: [{ status: "Open" }, { status: "Assigned" }],
       },
       {
@@ -41,33 +139,5 @@ export const ticketService = {
         ticketNo: 1,
       }
     ).sort({ createdAt: -1 });
-  },
-
-  async createTicketHistoryEntry(ticketNo, prevStatus, newStatus, author) {
-    const ticketHistory = await TicketHistory.findOne({ ticketNo });
-
-    const newChange = {
-      fields: { status: newStatus },
-      message: `Status changed from ${prevStatus} to ${newStatus}`,
-      author: author.username,
-    };
-
-    if (ticketHistory) {
-      ticketHistory.changes.push(newChange);
-      await ticketHistory.save();
-    } else {
-      const newTicketHistory = new TicketHistory({
-        ticketNo,
-        changes: [newChange],
-      });
-      await newTicketHistory.save();
-    }
-  },
-  async closeTicket(ticket) {
-    try {
-      await entryToCQR(ticket);
-    } catch (error) {
-      throw new Error("Error while closing ticket", error);
-    }
   },
 };

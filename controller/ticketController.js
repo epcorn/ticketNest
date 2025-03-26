@@ -1,14 +1,6 @@
 import { Ticket, TicketHistory } from "../models/ticketModel.js";
-import {
-  ticketClosed,
-  ticketRaised,
-  ticketRescheduled,
-} from "../services/emailService.js";
 import { ticketService } from "../services/ticketService.js";
 import {
-  areArraysEqual,
-  createTicketHistory,
-  createTicketHistoryEntry,
   entryToCQR,
   formattedData,
   generateExcel,
@@ -99,77 +91,57 @@ const update = async (req, res, next) => {
     const { ticketId } = req.params;
     const updateData = req.body;
 
-    const existingTicket = await Ticket.findById(ticketId).lean();
-
-    if (!existingTicket) {
+    const ticketExists = await Ticket.exists({ _id: ticketId });
+    if (!ticketExists) {
       return res.status(404).json({ message: "Ticket not found" });
     }
 
     // Handle status change to "Closed"
     if (updateData.status === "Closed") {
       try {
-        await entryToCQR(updateData);
-        const updatedTicket = await Ticket.findByIdAndUpdate(
-          { _id: ticketId },
+        const closedTicket = await ticketService.closeTicket(
           updateData,
-          { new: true, runValidators: true }
-        ).lean();
-
-        // Populate the history field
-        const populatedTicket = await Ticket.populate(updatedTicket, {
-          path: "history",
-          select: "changes",
-        });
-
-        // Create a new TicketHistory document for the status change
-        await createTicketHistoryEntry(
-          existingTicket.ticketNo,
-          existingTicket.status,
-          "Closed",
           req.user
         );
-        await ticketClosed(updatedTicket, req.user.username);
-
         return res
           .status(200)
-          .json({ message: "Ticket Closed!", ticket: populatedTicket });
+          .json({ message: "Ticket Closed!", ticket: closedTicket });
       } catch (error) {
         return res
           .status(500)
           .json({ message: "An error occurred while closing the ticket" });
       }
     }
-
     // Check if ticket should be marked as Assigned
     const shouldAssign =
-      updateData.agent && updateData.date && updateData.status === "Open";
+      updateData.agent &&
+      updateData.scheduledDate &&
+      updateData.status === "Open";
 
     if (shouldAssign) {
       updateData.status = "Assigned";
-      await ticketRaised(updateData, req.user.username);
-      await createTicketHistoryEntry(
-        existingTicket.ticketNo,
-        existingTicket.status,
-        "Assigned",
-        req.user
-      );
+      try {
+        const assignedTicket = await ticketService.assignTicket(
+          updateData,
+          req.user
+        );
+        return res
+          .status(200)
+          .json({ message: "Ticket Assigned!", ticket: assignedTicket });
+      } catch (error) {
+        return res
+          .status(500)
+          .json({ message: "An error occurred while assigning the ticket" });
+      }
     }
 
     // Update the ticket document and populate the history field
-    const updatedTicket = await Ticket.findOneAndUpdate(
-      { _id: ticketId },
-      updateData,
-      {
-        new: true,
-        runValidators: true,
-      }
-    )
-      .lean()
-      .populate({
-        path: "history",
-        select: "changes",
-      });
-
+    const updatedTicket = await Ticket.findByIdAndUpdate(ticketId, updateData, {
+      new: true,
+      runValidators: true,
+    })
+      .populate({ path: "history", select: "changes" })
+      .lean();
     return res
       .status(200)
       .json({ message: "Ticket Updated!", ticket: updatedTicket });
@@ -181,17 +153,12 @@ const update = async (req, res, next) => {
 const cancelTicket = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const ticket = await Ticket.findByIdAndUpdate(
-      id,
-      { $set: { status: "Canceled" } },
-      { new: true } // Optionally return the updated document
-    ).populate("history");
-
-    if (!ticket) {
+    const ticketExists = await Ticket.exists({ _id: id });
+    if (!ticketExists) {
       return res.status(404).json({ message: "Ticket not found" });
     }
-
-    res.status(200).json({ message: "Ticket Canceled!", ticket });
+    const cancelTicket = await ticketService.cancelTicket(id);
+    res.status(200).json({ message: "Ticket Canceled!", cancelTicket });
   } catch (error) {
     next(error);
   }
@@ -207,41 +174,21 @@ const reschedule = async (req, res, next) => {
         message: "Please provide scheduledDate, scheduledTime, and message",
       });
     }
-
-    const ticket = await Ticket.findById(ticketId);
-    if (!ticket) {
+    const ticketExists = await Ticket.exists({ _id: ticketId });
+    if (!ticketExists) {
       return res.status(404).json({ message: "Ticket not found" });
     }
 
-    const newChange = {
-      fields: {
-        scheduledDate: ticket.scheduledDate,
-        scheduledTime: ticket.scheduledTime,
-      },
-      message,
-      author: req.user.username,
-    };
-
-    const ticketHistory = await TicketHistory.findOneAndUpdate(
-      { ticketNo: ticket.ticketNo },
-      { $push: { changes: newChange } },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
-    );
-
-    const updatedTicket = await Ticket.findByIdAndUpdate(
+    const rescheduleTicket = await ticketService.rescheduleTicket(
       ticketId,
-      { scheduledDate, scheduledTime },
-      { new: true }
-    )
-      .lean()
-      .populate({
-        path: "history",
-        select: "changes",
-      });
-    await ticketRescheduled(updatedTicket, req.user.username);
+      scheduledDate,
+      scheduledTime,
+      message,
+      req.user
+    );
     return res.status(200).json({
       message: "Ticket rescheduled successfully",
-      ticket: updatedTicket,
+      ticket: rescheduleTicket,
     });
   } catch (error) {
     next(error);

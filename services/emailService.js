@@ -35,7 +35,8 @@ export const ticketRaised = async (data, assignedBy = "EPCON") => {
       //email: process.env.SALES_EMAIL,
       email: process.env.NO_REPLY_EMAIL,
     };
-    sendSmtpEmail.to = [{ email: sendEmailTo }];
+    //sendSmtpEmail.to = [{ email: sendEmailTo }];
+    sendSmtpEmail.to = [{ email: process.env.NO_REPLY_EMAIL }];
     sendSmtpEmail.templateId = 10;
     sendSmtpEmail.params = {
       number,
@@ -113,7 +114,8 @@ export const ticketClosed = async (data, closedBy = "EPCON") => {
       //email: process.env.SALES_EMAIL,
       email: process.env.NO_REPLY_EMAIL,
     };
-    sendSmtpEmail.to = [{ email: sendEmailTo }];
+    //sendSmtpEmail.to = [{ email: sendEmailTo }];
+    sendSmtpEmail.to = [{ email: process.env.NO_REPLY_EMAIL }];
     sendSmtpEmail.templateId = 12;
     sendSmtpEmail.params = {
       number,
@@ -164,7 +166,8 @@ export const ticketRescheduled = async (data, assignedBy = "EPCON") => {
       //email: process.env.SALES_EMAIL,
       email: process.env.NO_REPLY_EMAIL,
     };
-    sendSmtpEmail.to = [{ email: sendEmailTo }];
+    //sendSmtpEmail.to = [{ email: sendEmailTo }];
+    sendSmtpEmail.to = [{ email: process.env.NO_REPLY_EMAIL }];
     sendSmtpEmail.templateId = 14;
     sendSmtpEmail.params = {
       number,
