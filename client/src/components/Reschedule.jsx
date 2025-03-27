@@ -54,16 +54,20 @@ function Reschedule({ ticketId, onClose }) {
   }, [dispatch, ticketId]);
 
   async function submit() {
-    setLoading(true);
-    const data = {
-      id: ticketId,
-      changes: changes,
-    };
-    const resultAction = await dispatch(reschedule(data));
-    // eslint-disable-next-line no-unused-vars
-    const result = unwrapResult(resultAction);
-    setLoading(false);
-    onClose();
+    try {
+      setLoading(true);
+      const data = {
+        id: ticketId,
+        changes: changes,
+      };
+      const resultAction = await dispatch(reschedule(data));
+      // eslint-disable-next-line no-unused-vars
+      const result = unwrapResult(resultAction);
+      setLoading(false);
+      onClose();
+    } catch (error) {
+      setLoading(false);
+    }
   }
 
   return (

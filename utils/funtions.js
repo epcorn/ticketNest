@@ -1,6 +1,5 @@
 import ExcelJS from "exceljs";
-import { Ticket, TicketHistory } from "../models/ticketModel.js";
-import axios from "axios";
+import { Ticket } from "../models/ticketModel.js";
 import isEqual from "lodash";
 
 function mergeUniqueServices(services) {
@@ -30,45 +29,6 @@ function formattedData(data) {
 }
 function areArraysEqual(array1, array2) {
   return isEqual(array1, array2);
-}
-async function createTicketHistoryEntry(
-  ticketNo,
-  prevStatus,
-  newStatus,
-  author
-) {
-  const ticketHistory = await TicketHistory.findOne({ ticketNo });
-
-  const newChange = {
-    fields: { status: newStatus },
-    message: `Status changed from ${prevStatus} to ${newStatus}`,
-    author: author.username,
-  };
-
-  if (ticketHistory) {
-    ticketHistory.changes.push(newChange);
-    await ticketHistory.save();
-  } else {
-    const newTicketHistory = new TicketHistory({
-      ticketNo,
-      changes: [newChange],
-    });
-    await newTicketHistory.save();
-  }
-}
-async function createTicketHistory(ticketNo, author) {
-  const newChange = {
-    fields: { status: "Open" },
-    message: "Ticket created with Open status",
-    author: author.username,
-  };
-
-  const newTicketHistory = new TicketHistory({
-    ticketNo,
-    changes: [newChange],
-  });
-
-  await newTicketHistory.save();
 }
 async function generateExcel(data) {
   try {
@@ -107,68 +67,6 @@ async function generateExcel(data) {
     return buffer;
   } catch (error) {
     console.log("WE encounter error");
-  }
-}
-async function loginToCQR() {
-  try {
-    const loginResponse = await axios.post(
-      "https://cqr1.herokuapp.com/api/login",
-      {
-        name: process.env.CQR_USER_NAME,
-        password: process.env.CQR_USER_PASSWORD,
-      }
-    );
-    return loginResponse.data.token;
-  } catch (error) {
-    throw new Error("Login to CQR failed!");
-  }
-}
-async function entryToCQR(theTicket) {
-  try {
-    const token = await loginToCQR();
-    const {
-      contract: { selectedServices, number: contract },
-      scheduledDate,
-      ticketImage,
-    } = theTicket;
-    const image = ticketImage
-      ? ticketImage
-      : "https://res.cloudinary.com/epcorn/image/upload/v1712651284/ticketNest/tmp-1-1712651281899_rl1suj.png";
-    const comments = "All Job Done";
-    const completion = "Complete";
-    const serviceDate = scheduledDate;
-
-    const servicesArray = mergeUniqueServices(selectedServices);
-
-    for (const service of servicesArray) {
-      const { serviceId, name: serviceName } = service;
-
-      try {
-        await axios.post(
-          `https://cqr1.herokuapp.com/api/ticketReport/${serviceId}`,
-          {
-            image,
-            comments,
-            contract,
-            completion,
-            serviceDate,
-            serviceName,
-          },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-      } catch (error) {
-        throw new Error(
-          `Error sending ticket report for service ${serviceName} (ID: ${serviceId}): ${error.message}`
-        );
-      }
-    }
-    return "ok";
-  } catch (error) {
-    throw new Error(error.message);
   }
 }
 async function getTicketData() {
@@ -225,13 +123,9 @@ async function getTicketData() {
 }
 
 export {
-  loginToCQR,
-  entryToCQR,
   getTicketData,
   mergeUniqueServices,
   formattedData,
-  createTicketHistoryEntry,
-  createTicketHistory,
   areArraysEqual,
   generateExcel,
 };

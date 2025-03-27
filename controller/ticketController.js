@@ -1,7 +1,6 @@
 import { Ticket, TicketHistory } from "../models/ticketModel.js";
 import { ticketService } from "../services/ticketService.js";
 import {
-  entryToCQR,
   formattedData,
   generateExcel,
   getTicketData,
@@ -198,8 +197,8 @@ const reschedule = async (req, res, next) => {
 const ticketImage = async (req, res, next) => {
   try {
     const { ticketId, link } = req.body;
-    const ticket = await Ticket.findById(ticketId);
-    if (!ticket) {
+    const ticketExists = await Ticket.exists({ _id: ticketId });
+    if (!ticketExists) {
       return res.status(404).json({ message: "Ticket not found" });
     }
     const updatedTicket = await Ticket.findByIdAndUpdate(
@@ -757,7 +756,6 @@ export {
   getTicket,
   getTickets,
   update,
-  entryToCQR,
   incPrintCount,
   reschedule,
   ticketImage,

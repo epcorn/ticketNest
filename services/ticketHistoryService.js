@@ -35,14 +35,14 @@ export const ticketHistoryService = {
 
     await newTicketHistory.save();
   },
-  async ticketHistoryRechedule(ticketNo, message, author, fields) {
-    newChange = {
+  async ticketHistoryRechedule(historyId, message, author, fields) {
+    const newChange = {
       fields,
       message,
       author: author.username,
     };
     await TicketHistory.findByIdAndUpdate(
-      { ticketNo },
+      { _id: historyId },
       { $push: { changes: newChange } },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );

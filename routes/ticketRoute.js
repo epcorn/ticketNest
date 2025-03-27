@@ -1,7 +1,6 @@
 import { Router } from "express";
 import {
   create,
-  entryToCQR,
   getTicket,
   getTickets,
   incPrintCount,
@@ -25,7 +24,6 @@ router.post("/", verifyToken, create);
 router.get("/getTickets", verifyToken, getTickets);
 router.get("/:ticketId", verifyToken, getTicket);
 router.put("/:ticketId", verifyToken, update);
-router.get("/:ticketId/cqr", verifyToken, entryToCQR);
 router.get("/print/:ticketId", verifyToken, incPrintCount);
 router.post("/reschedule/:ticketId", verifyToken, reschedule);
 router.get("/cancel/:id", verifyToken, ifAdmin, cancelTicket);
@@ -36,6 +34,6 @@ router.get("/stats/insectsCount", verifyToken, getInsectsCount);
 router.get("/stats/serviceCount", verifyToken, getServicesCount);
 router.get("/stats/statusAvg", verifyToken, getStatusAvg);
 router.get("/reports/r1", verifyToken, genReport);
-router.get("/reports/jobs/", jobs);
+router.get("/reports/jobs/", verifyToken, jobs);
 
 export default router;

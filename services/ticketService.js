@@ -1,10 +1,7 @@
 import { Ticket } from "../models/ticketModel.js";
-import { areArraysEqual, entryToCQR } from "../utils/funtions.js";
-import {
-  ticketClosed,
-  ticketRaised,
-  ticketRescheduled,
-} from "./emailService.js";
+import { areArraysEqual } from "../utils/funtions.js";
+import { cqrServie } from "./cqrService.js";
+import { emailService } from "./emailService.js";
 import { ticketHistoryService } from "./ticketHistoryService.js";
 
 export const ticketService = {
@@ -35,7 +32,7 @@ export const ticketService = {
   },
   async assignTicket(ticketData, user) {
     try {
-      await ticketRaised(ticketData, user.username);
+      await emailService.ticketRaised(ticketData, user.username);
       await ticketHistoryService.createTicketHistoryEntry(
         ticketData.ticketNo,
         "Open",
@@ -66,6 +63,8 @@ export const ticketService = {
     user
   ) {
     try {
+      const existingTicket = await Ticket.findById(ticketId).lean();
+
       const rescheduleTicket = await Ticket.findByIdAndUpdate(
         ticketId,
         {
@@ -80,20 +79,24 @@ export const ticketService = {
         })
         .lean();
       await ticketHistoryService.ticketHistoryRechedule(
-        rescheduleTicket.ticketNo,
+        rescheduleTicket.history._id,
         message,
         user,
-        { scheduledDate, scheduledTime }
+        {
+          scheduledDate: existingTicket.scheduledDate,
+          scheduledTime: existingTicket.scheduledTime,
+        }
       );
-      await ticketRescheduled(rescheduleTicket, user.username);
+      await emailService.ticketRescheduled(rescheduleTicket, user.username);
       return rescheduleTicket;
     } catch (error) {
+      console.log(error);
       throw new Error("Error while rescheduling ticket", error);
     }
   },
   async closeTicket(ticket, user) {
     try {
-      await entryToCQR(ticket);
+      await cqrServie.entryToCQR(ticket);
 
       const closedTicket = await Ticket.findByIdAndUpdate(ticket._id, ticket, {
         new: true,
@@ -107,9 +110,10 @@ export const ticketService = {
         "Closed",
         user
       );
-      await ticketClosed(ticket, user.username);
+      await emailService.ticketClosed(ticket, user.username);
       return closedTicket;
     } catch (error) {
+      console.log(error);
       throw new Error("Error while closing ticket", error);
     }
   },

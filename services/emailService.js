@@ -1,66 +1,171 @@
 import brevo from "@getbrevo/brevo";
 
-export const ticketRaised = async (data, assignedBy = "EPCON") => {
-  const {
-    contract: {
-      number,
-      billToName,
-      billToAddress,
-      shipToName,
-      shipToAddress,
-      billToEmails,
-      shipToEmails,
-    },
-    complainMode,
-    scheduledDate,
-    scheduledTime,
-    ticketNo,
-    issue: { problem, location, details },
-    createdAt,
-    createdBy,
-  } = data;
-  const { date: raisedDate, time: raisedTime } = convertToIndianTime(createdAt);
-  const sendEmailTo =
-    billToEmails[0] || shipToEmails[0] || process.NO_REPLY_EMAIL;
-  try {
-    let defaultClient = brevo.ApiClient.instance;
-    let apiKey = defaultClient.authentications["api-key"];
-    apiKey.apiKey = process.env.BREVO_KEY_V3;
-
-    let apiInstance = new brevo.TransactionalEmailsApi();
-    let sendSmtpEmail = new brevo.SendSmtpEmail();
-
-    sendSmtpEmail.sender = {
-      name: "EPCORN",
-      //email: process.env.SALES_EMAIL,
-      email: process.env.NO_REPLY_EMAIL,
-    };
-    //sendSmtpEmail.to = [{ email: sendEmailTo }];
-    sendSmtpEmail.to = [{ email: process.env.NO_REPLY_EMAIL }];
-    sendSmtpEmail.templateId = 10;
-    sendSmtpEmail.params = {
-      number,
-      billToName,
-      billToAddress,
-      shipToName,
-      shipToAddress,
+export const emailService = {
+  async ticketRaised(data, assignedBy = "EPCON") {
+    const {
+      contract: {
+        number,
+        billToName,
+        billToAddress,
+        shipToName,
+        shipToAddress,
+        billToEmails,
+        shipToEmails,
+      },
       complainMode,
       scheduledDate,
       scheduledTime,
-      problem,
-      location,
-      details,
       ticketNo,
+      issue: { problem, location, details },
+      createdAt,
       createdBy,
-      raisedDate,
-      raisedTime,
-      assignedBy,
-    };
-    await apiInstance.sendTransacEmail(sendSmtpEmail);
-  } catch (error) {
-    throw new Error("Failed to send transactional email");
-  }
+    } = data;
+    const { date: raisedDate, time: raisedTime } =
+      convertToIndianTime(createdAt);
+    const sendEmailTo =
+      billToEmails[0] || shipToEmails[0] || process.NO_REPLY_EMAIL;
+    try {
+      let defaultClient = brevo.ApiClient.instance;
+      let apiKey = defaultClient.authentications["api-key"];
+      apiKey.apiKey = process.env.BREVO_KEY_V3;
+
+      let apiInstance = new brevo.TransactionalEmailsApi();
+      let sendSmtpEmail = new brevo.SendSmtpEmail();
+
+      sendSmtpEmail.sender = {
+        name: "EPCORN",
+        //email: process.env.SALES_EMAIL,
+        email: process.env.NO_REPLY_EMAIL,
+      };
+      sendSmtpEmail.to = [{ email: sendEmailTo }];
+      sendSmtpEmail.templateId = 10;
+      sendSmtpEmail.params = {
+        contractNo: number,
+        billToName,
+        billToAddress,
+        shipToName,
+        shipToAddress,
+        complainMode,
+        scheduledDate,
+        scheduledTime,
+        problem,
+        location,
+        details,
+        ticketNo,
+        createdBy,
+        raisedDate,
+        raisedTime,
+        assignedBy,
+      };
+      await apiInstance.sendTransacEmail(sendSmtpEmail);
+    } catch (error) {
+      throw new Error("Failed to send transactional email");
+    }
+  },
+  async ticketClosed(data, closedBy = "EPCON") {
+    const {
+      contract: { number, shipToAddress, billToEmails, shipToEmails },
+      ticketNo,
+      scheduledDate,
+      scheduledTime,
+      issue: { problem, location, details },
+    } = data;
+    const sendEmailTo =
+      billToEmails[0] || shipToEmails[0] || process.NO_REPLY_EMAIL;
+    try {
+      let defaultClient = brevo.ApiClient.instance;
+      let apiKey = defaultClient.authentications["api-key"];
+      apiKey.apiKey = process.env.BREVO_KEY_V3;
+
+      let apiInstance = new brevo.TransactionalEmailsApi();
+      let sendSmtpEmail = new brevo.SendSmtpEmail();
+
+      sendSmtpEmail.sender = {
+        name: "EPCORN",
+        //email: process.env.SALES_EMAIL,
+        email: process.env.NO_REPLY_EMAIL,
+      };
+      sendSmtpEmail.to = [{ email: sendEmailTo }];
+      sendSmtpEmail.templateId = 12;
+      sendSmtpEmail.params = {
+        contractNo: number,
+        shipToAddress,
+        scheduledDate,
+        problem: extractLabelsAsString(problem),
+        ticketNo,
+        closedBy,
+      };
+      await apiInstance.sendTransacEmail(sendSmtpEmail);
+    } catch (error) {
+      throw new Error("Failed to send transactional email");
+    }
+  },
+  async ticketRescheduled(data, assignedBy = "EPCON") {
+    const {
+      contract: {
+        number,
+        billToName,
+        billToAddress,
+        shipToName,
+        shipToAddress,
+        billToEmails,
+        shipToEmails,
+      },
+      complainMode,
+      scheduledDate,
+      scheduledTime,
+      ticketNo,
+      issue: { problem, location, details },
+      createdAt,
+      createdBy,
+    } = data;
+    const { date: raisedDate, time: raisedTime } =
+      convertToIndianTime(createdAt);
+    const sendEmailTo =
+      billToEmails[0] || shipToEmails[0] || process.NO_REPLY_EMAIL;
+    try {
+      let defaultClient = brevo.ApiClient.instance;
+      let apiKey = defaultClient.authentications["api-key"];
+      apiKey.apiKey = process.env.BREVO_KEY_V3;
+
+      let apiInstance = new brevo.TransactionalEmailsApi();
+      let sendSmtpEmail = new brevo.SendSmtpEmail();
+
+      sendSmtpEmail.sender = {
+        name: "EPCORN",
+        //email: process.env.SALES_EMAIL,
+        email: process.env.NO_REPLY_EMAIL,
+      };
+      sendSmtpEmail.to = [{ email: sendEmailTo }];
+      sendSmtpEmail.templateId = 14;
+      sendSmtpEmail.params = {
+        contractNo: number,
+        billToName,
+        billToAddress,
+        shipToName,
+        shipToAddress,
+        complainMode,
+        scheduledDate,
+        scheduledTime,
+        problem,
+        location,
+        details,
+        ticketNo,
+        createdBy,
+        raisedDate,
+        raisedTime,
+        assignedBy,
+      };
+      await apiInstance.sendTransacEmail(sendSmtpEmail);
+    } catch (error) {
+      throw new Error("Failed to send transactional email");
+    }
+  },
 };
+
+function extractLabelsAsString(data) {
+  return data.map((item) => item.label).join(", ");
+}
 
 function convertToIndianTime(createdAt) {
   // Create a new Date object from the given timestamp
@@ -89,110 +194,4 @@ function convertToIndianTime(createdAt) {
     date: formattedDate,
     time: formattedTime,
   };
-}
-
-export const ticketClosed = async (data, closedBy = "EPCON") => {
-  const {
-    contract: { number, shipToAddress, billToEmails, shipToEmails },
-    ticketNo,
-    scheduledDate,
-    scheduledTime,
-    issue: { problem, location, details },
-  } = data;
-  const sendEmailTo =
-    billToEmails[0] || shipToEmails[0] || process.NO_REPLY_EMAIL;
-  try {
-    let defaultClient = brevo.ApiClient.instance;
-    let apiKey = defaultClient.authentications["api-key"];
-    apiKey.apiKey = process.env.BREVO_KEY_V3;
-
-    let apiInstance = new brevo.TransactionalEmailsApi();
-    let sendSmtpEmail = new brevo.SendSmtpEmail();
-
-    sendSmtpEmail.sender = {
-      name: "EPCORN",
-      //email: process.env.SALES_EMAIL,
-      email: process.env.NO_REPLY_EMAIL,
-    };
-    //sendSmtpEmail.to = [{ email: sendEmailTo }];
-    sendSmtpEmail.to = [{ email: process.env.NO_REPLY_EMAIL }];
-    sendSmtpEmail.templateId = 12;
-    sendSmtpEmail.params = {
-      number,
-      shipToAddress,
-      scheduledDate,
-      problem: extractLabelsAsString(problem),
-      ticketNo,
-      closedBy,
-    };
-    await apiInstance.sendTransacEmail(sendSmtpEmail);
-  } catch (error) {
-    throw new Error("Failed to send transactional email");
-  }
-};
-
-export const ticketRescheduled = async (data, assignedBy = "EPCON") => {
-  const {
-    contract: {
-      number,
-      billToName,
-      billToAddress,
-      shipToName,
-      shipToAddress,
-      billToEmails,
-      shipToEmails,
-    },
-    complainMode,
-    scheduledDate,
-    scheduledTime,
-    ticketNo,
-    issue: { problem, location, details },
-    createdAt,
-    createdBy,
-  } = data;
-  const { date: raisedDate, time: raisedTime } = convertToIndianTime(createdAt);
-  const sendEmailTo =
-    billToEmails[0] || shipToEmails[0] || process.NO_REPLY_EMAIL;
-  try {
-    let defaultClient = brevo.ApiClient.instance;
-    let apiKey = defaultClient.authentications["api-key"];
-    apiKey.apiKey = process.env.BREVO_KEY_V3;
-
-    let apiInstance = new brevo.TransactionalEmailsApi();
-    let sendSmtpEmail = new brevo.SendSmtpEmail();
-
-    sendSmtpEmail.sender = {
-      name: "EPCORN",
-      //email: process.env.SALES_EMAIL,
-      email: process.env.NO_REPLY_EMAIL,
-    };
-    //sendSmtpEmail.to = [{ email: sendEmailTo }];
-    sendSmtpEmail.to = [{ email: process.env.NO_REPLY_EMAIL }];
-    sendSmtpEmail.templateId = 14;
-    sendSmtpEmail.params = {
-      number,
-      billToName,
-      billToAddress,
-      shipToName,
-      shipToAddress,
-      complainMode,
-      scheduledDate,
-      scheduledTime,
-      problem,
-      location,
-      details,
-      ticketNo,
-      createdBy,
-      raisedDate,
-      raisedTime,
-      assignedBy,
-    };
-    await apiInstance.sendTransacEmail(sendSmtpEmail);
-  } catch (error) {
-    throw new Error("Failed to send transactional email");
-  }
-};
-
-function extractLabelsAsString(data) {
-  return data.map((item) => item.label).join(", ");
 }
