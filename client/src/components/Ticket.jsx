@@ -26,19 +26,46 @@ const Ticket = forwardRef((props, ref) => {
     setId(newTicket._id);
   }, [newTicket]);
 
+  const formatTimestamp = (timestamp) => {
+    const utcTimestamp = new Date(timestamp);
+    const indianTimezone = "Asia/Kolkata";
+    const indianTimestamp = utcTimestamp.toLocaleString("en-IN", {
+      timeZone: indianTimezone,
+    });
+    return indianTimestamp;
+  };
   return (
     <div>
       <div ref={componentRef} className="ticket p-3 bg-white">
         <div className="ticket-header mb-2 border-b border-black pb-1">
           <h1 className="text-lg font-bold text-center mb-1">Ticket</h1>
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-start">
+            {/* Left Section: Ticket No & Contract */}
             <div>
               <h2 className="text-sm font-bold mb-0.5">
                 Ticket No: {newTicket.ticketNo}
               </h2>
               <h4 className="text-xs">Contract: {newTicket.contract.number}</h4>
             </div>
-            <div className="border-l border-black pl-2">
+
+            {/* Middle Section: Created By & Timestamp */}
+            <div className="border-l border-r border-black px-2">
+              <div>
+                <span className="text-xs font-semibold mb-0.5">
+                  Created By:{" "}
+                </span>
+                <span className="text-xs">{newTicket.createdBy}</span>
+              </div>
+              <div>
+                <span className="text-xs font-semibold mt-1">Timestamp: </span>
+                <span className="text-xs">
+                  {formatTimestamp(newTicket.createdAt)}
+                </span>
+              </div>
+            </div>
+
+            {/* Right Section: Scheduled */}
+            <div className=" pl-2">
               <p className="text-xs font-semibold mb-0.5">Scheduled:</p>
               <p className="text-xs">
                 {newTicket.scheduledDate} | {newTicket.scheduledTime}
@@ -46,6 +73,7 @@ const Ticket = forwardRef((props, ref) => {
             </div>
           </div>
         </div>
+
         <div className="ticket-body">
           <div className="mb-4">
             <h3 className="font-semibold text-sm mb-1">Ship To Details:</h3>
@@ -64,6 +92,7 @@ const Ticket = forwardRef((props, ref) => {
               </p>
             </div>
           </div>
+
           <div className="mb-4">
             <h3 className="font-semibold text-sm mb-1">Complain Details:</h3>
             <div className="border-l-2 border-black pl-1">
@@ -105,6 +134,7 @@ const Ticket = forwardRef((props, ref) => {
               </p>
             </div>
           </div>
+
           <div className="mb-4">
             <h3 className="font-semibold text-sm mb-1">Appointment Details:</h3>
             <div className="flex">
@@ -114,6 +144,7 @@ const Ticket = forwardRef((props, ref) => {
               </div>
             </div>
           </div>
+
           <div className="border-t border-black pt-2">
             <h3 className="font-semibold text-sm mb-1">Customer Signature:</h3>
             <div className="flex items-center">
@@ -137,6 +168,7 @@ const Ticket = forwardRef((props, ref) => {
           </div>
         </div>
       </div>
+
       <div className="flex items-center justify-center mt-2">
         <Button gradientDuoTone="purpleToPink" onClick={() => handlePrint()}>
           <span className="mr-2">Print</span>
