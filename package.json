@@ -6,7 +6,7 @@
   "main": "server.js",
   "scripts": {
     "start": "nodemon server.js",
-    "setup-production": "npm run install-client && npm run build-client  && npm i && rm -rf client/node_modules",
+    "setup-production": "npm run install-client && npm run build-client",
     "install-client": "cd client && npm install",
     "build-client": "cd client && npm run build"
   },
@@ -31,5 +31,5 @@
   "devDependencies": {
     "nodemon": "^3.1.0"
   },
-  "proxy": "http://localhost:5000"
+  "proxy": "http://localhost:5050"
 }
