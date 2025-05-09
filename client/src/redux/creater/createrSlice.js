@@ -56,7 +56,7 @@ export const contractDetails = createAsyncThunk(
   async (search, { rejectWithValue }) => {
     try {
       const response = await fetch(
-        `https://cqr1.herokuapp.com/api/contractServices?search=${search}`
+        `https://cqr.sat9.in/api/contractServices?search=${search}`
       );
       if (!response.ok) {
         const errorData = await response.json();
